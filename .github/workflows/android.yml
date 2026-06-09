@@ -1,26 +1,47 @@
 name: Build Android APK
+
 on:
   push:
     branches:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: write
+  actions: write
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+
     steps:
+      # 1. 签出你的代码和 Excel 表格
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Build APK with Buildozer
-        uses: ArtemGovorov/buildozer-action@v1
-        id: buildozer
+      # 2. 配置标准的 Python 环境
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          command: buildozer -v android debug
-          repository_root: .
+          python-version: '3.10'
 
+      # 3. 安装 Linux 系统底层打包依赖、Java 环境和 Buildozer
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libssl-dev cmake libgstreamer1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good
+          pip install --user --upgrade buildozer cython
+
+      # 4. 原生命令：全自动开始编译 APK
+      - name: Build with Buildozer
+        run: |
+          # 将 buildozer 添加到系统路径并执行打包
+          export PATH=$PATH:~/.local/bin
+          buildozer -v android debug
+
+      # 5. 上传最终生成的安装包
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: My-Android-App
-          path: ${{ steps.buildozer.outputs.filename }}
+          path: bin/*.apk
