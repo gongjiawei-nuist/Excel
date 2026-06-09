@@ -1,0 +1,30 @@
+name: Build Android APK with Buildozer
+
+on:
+  push:
+    branches: [ "main" ] # 当你向 main 分支提交代码（比如你刚刚修改 spec 文件）时自动触发
+  workflow_dispatch:     # 允许你在网页上点击按钮手动触发打包
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04 # 使用标准的 Linux 编译环境
+
+    steps:
+    # 1. 签出仓库中的代码（包括你的 main.py, buildozer.spec 和 Excel 模板）
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # 2. 调用云端算力，全自动配置安卓 SDK、NDK 依赖并执行打包
+    - name: Build APK with Buildozer
+      uses: ArtemGovorov/buildozer-action@v1
+      id: buildozer
+      with:
+        command: buildozer -v android debug
+        repository_root: .
+
+    # 3. 将编译好的 .apk 安装包打包上传，供你下载
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: My-Android-App       # 下载时的压缩包名称
+        path: ${{ steps.buildozer.outputs.filename }} # 动态获取生成的 apk 路径
