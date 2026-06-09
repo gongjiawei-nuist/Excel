@@ -25,19 +25,25 @@ jobs:
         with:
           python-version: '3.10'
 
-      # 3. 精简安装：去除导致冲突的多媒体库，只保留核心打包工具
+      # 3. 安装 Linux 系统底层打包依赖、Java 环境和 Buildozer
       - name: Install Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libssl-dev cmake
           pip install --user --upgrade buildozer cython
 
-      # 4. 执行编译
+      # 4. 自动接受安卓所有协议，并执行编译
       - name: Build with Buildozer
         run: |
           export PATH=$PATH:~/.local/bin
-          buildozer -v android debug
-
+          
+          # 【核心修复】：预先创建并配置安卓 SDK 目录，告诉系统全盘接受 Google 的 License 协议
+          mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
+          echo -e "\n8933bad161ad4178b1185d1a37fdd41ea3103c55\n24333f8a63b6825ea9c5514f83c2829b004d1fee\n84831b9409646a918e30573bab4c9c91346d8abd" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
+          
+          # 使用 yes 命令配合管道符，确保后续下载任何新工具链时都能自动确认同意
+          yes | buildozer -v android debug
+          
       # 5. 上传最终生成的安装包
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
